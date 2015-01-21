@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import sys
+import map_reduce_utils as mr_util
 
 """
 (file_name) (word n) --> (word file_name) (n, N)
@@ -10,31 +10,20 @@ that sum for each word along with the number of occurences of that
 word in the given document
 """
 
+key_names = ['filename']
+value_names = ['word', 'frequency']
 
-def print_results(words, cur_file, cur_count):
-    for word, count in words:
-        print '{0} {1}\t{2} {3}'.format(word, cur_file, count, cur_count)
 
-words = []
-cur_file = None
-docname = None
-cur_count = 0
+def print_results(values, filename, count):
+    template = '{0} {1}\t{2} {3}'
+    for value in values:
+        print template.format(value['word'], filename, value['frequency'], count)
 
-for line in sys.stdin:
-    key, value = line.strip().split('\t')
-    docname = key.strip()
-    word, count = value.strip().split()
-    count = int(count)
 
-    if docname == cur_file:
-        cur_count += count
-        words.append((word, count))
-    else:
-        if cur_file is not None:
-            print_results(words, cur_file, cur_count)
-        words = []
-        cur_file = docname
-        cur_count = 0
-
-if cur_file is not None:
-    print_results(words, cur_file, cur_count)
+for key, key_stream in mr_util.reducer_stream(key_names, value_names):
+    count = 0
+    values = []
+    for value in key_stream:
+        values.append(value)
+        count += int(value['frequency'])
+    print_results(values, key['filename'], count)
